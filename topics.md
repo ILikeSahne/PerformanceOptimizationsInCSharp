@@ -1,4 +1,6 @@
-# Unit Price Example
+# Intro
+
+## Unit Price Example
 
 You get a Story assigned to implement variable pricing for a product depending on the quantity ordered.
 
@@ -8,7 +10,7 @@ Example:
 - > 100.000 units: 0.30€ per unit
 - ...
 
-## Linq
+### Linq
 
 ```cs
 record PriceTier(int MinQuantity, decimal UnitPrice);
@@ -22,7 +24,7 @@ public decimal GetUnitPrice(int quantity, List<PriceTier> tiers)
 }
 ```
 
-## PriceTable with BinarySearch
+### PriceTable with BinarySearch
 
 ```cs
 public class PriceTable
@@ -51,7 +53,7 @@ public class PriceTable
 }
 ```
 
-## Runtime changes
+### Runtime changes
 
 Got the Code down from O(n) to O(log n) but the code is more complex now.
 
@@ -60,17 +62,17 @@ PO comes to you and tells you that this is only gonna be used with 3 tiers and o
 
 Also we now introduced a possible failure for other developers and they might directly use `new PriceTable(tiers).GetUnitPrice(quantity)` removing all the optimizations we did.
 
-# When to optimize
+## When to optimize
 
 "Premature Optimization is the root of all evil" - Donald Knuth
 
-## No premature optimizations
+### No premature optimizations
 
 Optimizing before we know that we actually need to (and potentially spending a lot of time on it)
 
 Code itself may be harder to understand
 
-# C# vs Linq
+## C# vs Linq
 
 ```cs
 record Person(string Name, string Gender, int Age);
@@ -81,7 +83,7 @@ public int CountPersonsOver50(IEnumerable<Person> persons)
 }
 ```
 
-## How could we optimize this?
+How could we optimize this?
 
 ### Visual Studio already shows us:
 
@@ -113,15 +115,15 @@ public int CountPersonsOver50(IEnumerable<Person> persons)
 }
 ```
 
-## So now the Code is faster no?
+### So now the Code is faster no?
 
 Answer: Probably, but we don't know
 
-# BenchmarkDotNet
+## BenchmarkDotNet
 
 Short description of workings
 
-## WhereCountVsCountVsForEach
+### WhereCountVsCountVsForEach
 
 ```cs
 [MemoryDiagnoser]
@@ -147,7 +149,7 @@ public class CountPersonsOver50Benchmark
 }
 ```
 
-## Result
+### Result
 
 ![](results/WhereCountVsCountVsForeach/ienumerable/benchmark.png)
 
@@ -156,28 +158,28 @@ Explanation how to read the result.
 Ok, so now we have actually proofed that our optimization works (cut off, act confused).
 ... But wait, WhereCount was actually faster?
 
-## Result - Huh?
+### Result - Huh?
 
 Huh, why did that happen?
 
-## Result - Trick
+### Result - Trick
 
 1. Used .net6.0, newer versions of .net highly optimized Linq using Spans in the background
 2. Used IEnumerable which is a generic type and has to be handled in a generic way, so the compiler can't optimize it as good as it could with a List or an Array (only works like this in older .net versions)
 
-## Result with .net10.0
+### Result with .net10.0
 
 ![](results/WhereCountVsCountVsForeach/dotnet10/benchmark.png)
 
-## Result with List
+### Result with List
 
 ![](results/WhereCountVsCountVsForeach/list/benchmark.png)
 
-# Optimization is Hard
+## Optimization is Hard
 
 You have to measure it, relying on intuition is not enough.
 
-# First Problem vs Fable
+### First Problem vs Fable
 
 Fable 5.1 High - 15.09.2026
 Prompt:
@@ -193,14 +195,76 @@ public int CountPersonsOver50(IEnumerable<Person> persons)
 }
 ```
 
-## Result (Summarized)
+### Result (Summarized)
 
 Use Count directly (~1.2x - 1.5x)
 Check if IEnumerabel is a List or an Array and then loop over it knowing that it is a List / an Array
 
-## Results (Benchmark)
+### Results (Benchmark)
 
 ![](results/WhereCountVsCountVsForeach/fable/benchmark.png)
 
 Solution with TypeSwitch is not bad in .net6.0.
 Sadly the model outputs the same optimization suggestion for .net10.0 where Count and TypeSwitch has about the same performance with TypeSwitch being more complex than a simple Linq.
+
+# Datastructures
+
+## Struct vs Class
+
+You have a PC somewhere at a customer. It crashes sometimes and you are not sure why.
+Your idea is that the PC gets too hot, so you start measuring the temperature of the CPU for each Core and report the average tempature of each Phase of the Workflow.
+
+### Linq
+
+```cs
+public void Linq(TemperatureReading[] readings, Dictionary<Phase, double[]> result)
+{
+    foreach (var group in readings.GroupBy(r => (r.Phase, r.Core)))
+    {
+        result[group.Key.Phase][group.Key.Core] = group.Sum(r => r.Celsius);
+    }
+}
+```
+
+You might write something like this as your first solution.
+(The dictionary is already created in the correct format, is done this way to better compare benchmarks)
+
+This uses the dictionary directly for Lookups and looks pretty good.
+
+Taking a closer look at how the Enum is defined, we can see that it only uses the numbers 0 to 5.
+
+```cs
+public enum Phase
+{
+    Startup = 0,
+    Import = 1,
+    Processing = 2,
+    Export = 3,
+    Idle = 4,
+    Shutdown = 5,
+}
+```
+
+With that knowledge we can get rid of the Dictionary and use a simple Array instead.
+
+### Array
+
+```cs
+public static void Array(TemperatureReading[] readings, Dictionary<Phase, double[]> result)
+{
+    var sums = new double[Cpu.PhaseCount * Cpu.CoreCount];
+
+    foreach (var reading in readings)
+    {
+        sums[(int)reading.Phase * Cpu.CoreCount + reading.Core] += reading.Celsius;
+    }
+
+    CoreTemperatureResult.CopyFrom(sums, result); // converts the sums array into the result dictionary
+}
+```
+
+Now there is no need for Dictionary Lookups, the Phase can be used directly as an index into the array.
+
+## Immutable Datstructures
+
+## String Builder (vs string.Create)
