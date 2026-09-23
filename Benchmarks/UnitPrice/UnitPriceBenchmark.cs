@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using Benchmarks.Data;
 
 namespace Benchmarks.UnitPrice;
 

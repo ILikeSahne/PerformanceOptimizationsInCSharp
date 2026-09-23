@@ -214,15 +214,41 @@ Sadly the model outputs the same optimization suggestion for .net10.0 where Coun
 You have a PC somewhere at a customer. It crashes sometimes and you are not sure why.
 Your idea is that the PC gets too hot, so you start measuring the temperature of the CPU for each Core and report the average tempature of each Phase of the Workflow.
 
-### Linq
+### Loading
 
 ```cs
-public void Linq(TemperatureReading[] readings, Dictionary<Phase, double[]> result)
+public record TemperatureReading(Phase Phase, double Celsius);
+
+public List<TemperatureReading> Load(string[] lines)
 {
-    foreach (var group in readings.GroupBy(r => (r.Phase, r.Core)))
+    var readings = new List<TemperatureReading>();
+
+    foreach (var line in lines)
     {
-        result[group.Key.Phase][group.Key.Core] = group.Sum(r => r.Celsius);
+        var parts = line.Split(';');
+
+        readings.Add(new TemperatureReading(
+            Enum.Parse<Phase>(parts[0]),
+            double.Parse(parts[1], CultureInfo.InvariantCulture)));
     }
+
+    return readings;
+}
+```
+
+### Dictionary
+
+```cs
+public Dictionary<Phase, int> Linq(List<TemperatureReading> readings)
+{
+    var averages = readings
+        .GroupBy(r => r.Phase)
+        .ToDictionary(g => g.Key, g => g.Average(r => r.Celsius));
+
+    return readings
+        .Where(r => r.Celsius > averages[r.Phase] + Spike.Threshold)
+        .GroupBy(r => r.Phase)
+        .ToDictionary(g => g.Key, g => g.Count());
 }
 ```
 
@@ -250,20 +276,149 @@ With that knowledge we can get rid of the Dictionary and use a simple Array inst
 ### Array
 
 ```cs
-public static void Array(TemperatureReading[] readings, Dictionary<Phase, double[]> result)
+public TemperatureReading[] Load(string[] lines)
 {
-    var sums = new double[Cpu.PhaseCount * Cpu.CoreCount];
+    var readings = new List<TemperatureReading>();
+
+    foreach (var line in lines)
+    {
+        var parts = line.Split(';');
+
+        readings.Add(new TemperatureReading(
+            Enum.Parse<Phase>(parts[0]),
+            double.Parse(parts[1], CultureInfo.InvariantCulture)));
+    }
+
+    return readings.ToArray();
+}
+
+public Dictionary<Phase, int> Array(TemperatureReading[] readings)
+{
+    var sums = new double[Cpu.PhaseCount];
+    var counts = new int[Cpu.PhaseCount];
 
     foreach (var reading in readings)
     {
-        sums[(int)reading.Phase * Cpu.CoreCount + reading.Core] += reading.Celsius;
+        var phase = (int)reading.Phase;
+        sums[phase] += reading.Celsius;
+        counts[phase]++;
     }
 
-    CoreTemperatureResult.CopyFrom(sums, result); // converts the sums array into the result dictionary
+    var spikes = new int[Cpu.PhaseCount];
+
+    foreach (var reading in readings)
+    {
+        var phase = (int)reading.Phase;
+
+        if (reading.Celsius > sums[phase] / counts[phase] + Spike.Threshold)
+        {
+            spikes[phase]++;
+        }
+    }
+
+    return PhaseDictionary.From(spikes);
 }
 ```
 
 Now there is no need for Dictionary Lookups, the Phase can be used directly as an index into the array.
+
+![](results/CoreTemperature/DictionaryVsArray/benchmark.png)
+
+That made it 20% faster, not bad and it even uses 10% less memory now.
+For now it seems like this is all we can do here, lets look at the loading part, maybe we can optimize that too.
+
+### Struct
+
+So currently it uses a class, but the data is immutable and small, this sounds like a perfect use case for a struct.
+
+```cs
+public readonly record struct TemperatureReadingStruct(Phase Phase, double Celsius);
+
+public TemperatureReadingStruct[] LoadStructs(string[] lines)
+{
+    var readings = new List<TemperatureReadingStruct>();
+
+    foreach (var line in lines)
+    {
+        var parts = line.Split(';');
+
+        readings.Add(new TemperatureReadingStruct(
+            Enum.Parse<Phase>(parts[0]),
+            double.Parse(parts[1], CultureInfo.InvariantCulture)));
+    }
+
+    return readings.ToArray();
+}
+
+public Dictionary<Phase, int> Struct(TemperatureReadingStruct[] readings)
+{
+    var sums = new double[Cpu.PhaseCount];
+    var counts = new int[Cpu.PhaseCount];
+
+    foreach (var reading in readings)
+    {
+        var phase = (int)reading.Phase;
+        sums[phase] += reading.Celsius;
+        counts[phase]++;
+    }
+
+    var spikes = new int[Cpu.PhaseCount];
+
+    foreach (var reading in readings)
+    {
+        var phase = (int)reading.Phase;
+
+        if (reading.Celsius > sums[phase] / counts[phase] + Spike.Threshold)
+        {
+            spikes[phase]++;
+        }
+    }
+
+    return PhaseDictionary.From(spikes);
+}
+```
+
+![](results/CoreTemperature/ClassVsStruct/benchmark.png)
+
+Oh, wow almost 50% faster, that is a huge improvement. The memory usage is about the same, but the GC has to do less work now.
+
+But we still use a lot of memory, although, where does this even come from? The List and the Array can't be that big.
+readings: 100_000 x 16 bytes = 1.6 MB
+readings.ToArray(): 100_000 x 16 bytes = 1.6 MB
+
+That is 3.2 MB out of ~18 MB, where does the rest come from?
+
+## Perf View
+
+Using [EventPipeProfiler(EventPipeProfile.GcVerbose)], we can collect a trace of the application and analyze it with PerfView.
+
+### Span Split
+
+```cs
+public TemperatureReadingStruct[] LoadStructs(string[] lines)
+{
+    var readings = new List<TemperatureReadingStruct>();
+    Span<Range> parts = stackalloc Range[2];
+
+    foreach (var line in lines)
+    {
+        var span = line.AsSpan();
+        span.Split(parts, ';');
+
+        readings.Add(new TemperatureReadingStruct(
+            Enum.Parse<Phase>(span[parts[0]]),
+            double.Parse(span[parts[1]], CultureInfo.InvariantCulture)));
+    }
+
+    return readings.ToArray();
+}
+```
+
+![](results/CoreTemperature/SpanSplit/benchmark.png)
+
+Wow another 20% faster and now we are at only 5.5 MB, that is a huge improvement.
+
+
 
 ## Immutable Datstructures
 

@@ -1,13 +1,11 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using Benchmarks.Data;
 
-namespace Benchmarks.CountPersonsOver50;
+namespace Benchmarks.CountPersons;
 
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net60)]
-[SimpleJob(RuntimeMoniker.Net10_0)]
-public class CountPersonsOver50BenchmarkDotNet10
+public class CountPersonsOver50Benchmark
 {
     private IEnumerable<Person> _persons = null!;
 
@@ -18,16 +16,16 @@ public class CountPersonsOver50BenchmarkDotNet10
     }
 
     [Benchmark(Baseline = true)]
-    public int WhereCount() => CountPersonsOver50DotNet10.WhereCount(_persons);
+    public int WhereCount() => CountPersonsOver50.WhereCount(_persons);
 
     [Benchmark]
-    public int Count() => CountPersonsOver50DotNet10.Count(_persons);
+    public int Count() => CountPersonsOver50.Count(_persons);
 
     [Benchmark]
-    public int ForEach() => CountPersonsOver50DotNet10.ForEach(_persons);
+    public int ForEach() => CountPersonsOver50.ForEach(_persons);
 }
 
-public static class CountPersonsOver50DotNet10
+public static class CountPersonsOver50
 {
     public static int WhereCount(IEnumerable<Person> persons)
     {

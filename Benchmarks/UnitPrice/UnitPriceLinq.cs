@@ -1,4 +1,3 @@
-using Benchmarks.Data;
 
 namespace Benchmarks.UnitPrice;
 

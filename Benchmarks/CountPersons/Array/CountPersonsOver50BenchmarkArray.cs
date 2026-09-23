@@ -1,8 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using Benchmarks.Data;
 
-namespace Benchmarks.CountPersonsOver50;
+namespace Benchmarks.CountPersons;
 
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net60)]

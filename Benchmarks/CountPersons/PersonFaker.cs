@@ -1,6 +1,6 @@
 using Bogus;
 
-namespace Benchmarks.Data;
+namespace Benchmarks.CountPersons;
 
 public static class PersonFaker
 {
