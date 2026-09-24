@@ -3,14 +3,14 @@ using BenchmarkDotNet.Jobs;
 
 namespace Benchmarks.UnitPrice;
 
-[MemoryDiagnoser]
 public class UnitPriceBenchmark
 {
     private List<PriceTier> _tiers = null!;
+    private List<PriceTier> _tiersSortedDescending = null!;
     private PriceTable _priceTable = null!;
     private int _quantity;
 
-    [Params(3, 1000)]
+    [Params(3, 10, 100)]
     public int TierCount { get; set; }
 
     [GlobalSetup]
@@ -19,6 +19,8 @@ public class UnitPriceBenchmark
         _tiers = Enumerable.Range(0, TierCount)
             .Select(i => new PriceTier(i * 10 + 1, 100m - i * 0.05m))
             .ToList();
+
+        _tiersSortedDescending = _tiers.OrderByDescending(t => t.MinQuantity).ToList();
 
         _priceTable = new PriceTable(_tiers);
 
@@ -29,8 +31,8 @@ public class UnitPriceBenchmark
     public decimal Linq() => UnitPriceLinq.GetUnitPrice(_quantity, _tiers);
 
     [Benchmark]
-    public decimal PriceTable() => _priceTable.GetUnitPrice(_quantity);
+    public decimal SortedForLoop() => UnitPriceSorted.GetUnitPrice(_quantity, _tiersSortedDescending);
 
     [Benchmark]
-    public decimal PriceTableWithConstruction() => new PriceTable(_tiers).GetUnitPrice(_quantity);
+    public decimal PriceTable() => _priceTable.GetUnitPrice(_quantity);
 }

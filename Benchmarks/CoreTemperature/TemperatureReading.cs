@@ -10,14 +10,14 @@ public enum Phase
     Shutdown = 5,
 }
 
+public static class Phases
+{
+    public static readonly int Count = Enum.GetValues<Phase>().Length;
+}
+
 public record TemperatureReading(Phase Phase, double Celsius);
 
 public readonly record struct TemperatureReadingStruct(Phase Phase, double Celsius);
-
-public static class Cpu
-{
-    public const int PhaseCount = (int)Phase.Shutdown + 1;
-}
 
 public static class Spike
 {

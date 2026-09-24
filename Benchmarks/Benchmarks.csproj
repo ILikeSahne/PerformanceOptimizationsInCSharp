@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net6.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0;net6.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,9 +10,9 @@
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
-  <!-- Span.Split does not exist on .NET 6 -->
+  <!-- Core Temperature is .NET 10 only (AggregateBy, CountBy, Span.Split) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <Compile Remove="CoreTemperature\SpanSplit\**" />
+    <Compile Remove="CoreTemperature\**" />
   </ItemGroup>
 
   <ItemGroup>

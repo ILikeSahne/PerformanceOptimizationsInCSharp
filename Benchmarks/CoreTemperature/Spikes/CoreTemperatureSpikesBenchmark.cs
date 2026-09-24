@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 namespace Benchmarks.CoreTemperature;
 
 [MemoryDiagnoser]
-public class CoreTemperatureDictionaryVsArrayBenchmark
+public class CoreTemperatureSpikesBenchmark
 {
     private List<TemperatureReading> _readings = null!;
 
@@ -17,14 +17,26 @@ public class CoreTemperatureDictionaryVsArrayBenchmark
     }
 
     [Benchmark(Baseline = true)]
+    public Dictionary<Phase, int> Linq()
+    {
+        return CoreTemperatureSpikes.Linq(_readings);
+    }
+
+    [Benchmark]
     public Dictionary<Phase, int> FastLinq()
     {
-        return CoreTemperatureDictionaryVsArray.FastLinq(_readings);
+        return CoreTemperatureSpikes.FastLinq(_readings);
     }
 
     [Benchmark]
     public Dictionary<Phase, int> NoLinqArray()
     {
-        return CoreTemperatureDictionaryVsArray.NoLinqArray(_readings);
+        return CoreTemperatureSpikes.NoLinqArray(_readings);
+    }
+
+    [Benchmark]
+    public Dictionary<Phase, int> NoLinqSpan()
+    {
+        return CoreTemperatureSpikes.NoLinqSpan(_readings);
     }
 }

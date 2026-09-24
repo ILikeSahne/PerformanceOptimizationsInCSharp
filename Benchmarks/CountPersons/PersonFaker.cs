@@ -4,7 +4,7 @@ namespace Benchmarks.CountPersons;
 
 public static class PersonFaker
 {
-    public static IEnumerable<Person> Generate(int count)
+    public static List<Person> Generate(int count)
     {
         return new Faker<Person>()
             .UseSeed(42)

@@ -273,50 +273,22 @@ public enum Phase
 
 With that knowledge we can get rid of the Dictionary and use a simple Array instead.
 
-### Array
+### AggregateBy
 
 ```cs
-public TemperatureReading[] Load(string[] lines)
+public Dictionary<Phase, int> FastLinq(List<TemperatureReading> readings)
 {
-    var readings = new List<TemperatureReading>();
+    var averages = readings
+        .AggregateBy(
+            r => r.Phase,
+            (Sum: 0.0, Count: 0),
+            (total, r) => (total.Sum + r.Celsius, total.Count + 1))
+        .ToDictionary(kv => kv.Key, kv => kv.Value.Sum / kv.Value.Count);
 
-    foreach (var line in lines)
-    {
-        var parts = line.Split(';');
-
-        readings.Add(new TemperatureReading(
-            Enum.Parse<Phase>(parts[0]),
-            double.Parse(parts[1], CultureInfo.InvariantCulture)));
-    }
-
-    return readings.ToArray();
-}
-
-public Dictionary<Phase, int> Array(TemperatureReading[] readings)
-{
-    var sums = new double[Cpu.PhaseCount];
-    var counts = new int[Cpu.PhaseCount];
-
-    foreach (var reading in readings)
-    {
-        var phase = (int)reading.Phase;
-        sums[phase] += reading.Celsius;
-        counts[phase]++;
-    }
-
-    var spikes = new int[Cpu.PhaseCount];
-
-    foreach (var reading in readings)
-    {
-        var phase = (int)reading.Phase;
-
-        if (reading.Celsius > sums[phase] / counts[phase] + Spike.Threshold)
-        {
-            spikes[phase]++;
-        }
-    }
-
-    return PhaseDictionary.From(spikes);
+    return readings
+        .Where(r => r.Celsius > averages[r.Phase] + Spike.Threshold)
+        .CountBy(r => r.Phase)
+        .ToDictionary();
 }
 ```
 
@@ -352,29 +324,28 @@ public TemperatureReadingStruct[] LoadStructs(string[] lines)
 
 public Dictionary<Phase, int> Struct(TemperatureReadingStruct[] readings)
 {
-    var sums = new double[Cpu.PhaseCount];
-    var counts = new int[Cpu.PhaseCount];
+    var sums = new Dictionary<Phase, double>();
+    var counts = new Dictionary<Phase, int>();
 
     foreach (var reading in readings)
     {
-        var phase = (int)reading.Phase;
-        sums[phase] += reading.Celsius;
-        counts[phase]++;
+        sums[reading.Phase] = sums.GetValueOrDefault(reading.Phase) + reading.Celsius;
+        counts[reading.Phase] = counts.GetValueOrDefault(reading.Phase) + 1;
     }
 
-    var spikes = new int[Cpu.PhaseCount];
+    var averages = sums.ToDictionary(s => s.Key, s => s.Value / counts[s.Key]);
+
+    var spikes = new Dictionary<Phase, int>();
 
     foreach (var reading in readings)
     {
-        var phase = (int)reading.Phase;
-
-        if (reading.Celsius > sums[phase] / counts[phase] + Spike.Threshold)
+        if (reading.Celsius > averages[reading.Phase] + Spike.Threshold)
         {
-            spikes[phase]++;
+            spikes[reading.Phase] = spikes.GetValueOrDefault(reading.Phase) + 1;
         }
     }
 
-    return PhaseDictionary.From(spikes);
+    return spikes;
 }
 ```
 

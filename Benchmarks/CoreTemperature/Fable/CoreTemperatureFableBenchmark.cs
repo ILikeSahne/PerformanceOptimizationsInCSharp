@@ -6,7 +6,7 @@ namespace Benchmarks.CoreTemperature;
 public class CoreTemperatureFableBenchmark
 {
     private List<TemperatureReading> _readings = null!;
-    private TemperatureReadingStruct[] _readingStructs = null!;
+    private List<TemperatureReadingStruct> _readingStructs = null!;
 
     public int ReadingCount { get; set; } = 10_000_000;
 
@@ -14,18 +14,12 @@ public class CoreTemperatureFableBenchmark
     public void Setup()
     {
         _readings = TemperatureReadingFaker.Generate(ReadingCount).ToList();
-        _readingStructs = TemperatureReadingFaker.GenerateStructs(ReadingCount);
+        _readingStructs = TemperatureReadingFaker.GenerateStructs(ReadingCount).ToList();
     }
 
     [Benchmark(Baseline = true)]
-    public Dictionary<Phase, int> Linq() => CoreTemperatureDictionaryVsArray.Linq(_readings);
+    public Dictionary<Phase, int> Linq() => CoreTemperatureFable.Linq(_readings);
 
     [Benchmark]
-    public Dictionary<Phase, int> Struct() => CoreTemperatureClassVsStruct.Struct(_readingStructs);
-
-    // TODO: add Fable's answers for the spikes version here
-}
-
-public static class CoreTemperatureFable
-{
+    public Dictionary<Phase, int> Struct() => CoreTemperatureFable.NoLinqSpan(_readingStructs);
 }
