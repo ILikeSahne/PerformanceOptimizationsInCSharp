@@ -4,11 +4,11 @@ public static class PhaseDictionary
 {
     public static Dictionary<Phase, int> From(ReadOnlySpan<int> values)
     {
-        var result = new Dictionary<Phase, int>();
+        var result = new Dictionary<Phase, int>(values.Length);
 
-        foreach (var phase in Enum.GetValues<Phase>())
+        for (var phase = 0; phase < values.Length; phase++)
         {
-            result[phase] = values[(int)phase];
+            result[(Phase)phase] = values[phase];
         }
 
         return result;

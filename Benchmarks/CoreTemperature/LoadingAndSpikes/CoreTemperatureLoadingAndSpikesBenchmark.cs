@@ -1,5 +1,4 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Diagnosers;
 
 namespace Benchmarks.CoreTemperature;
 
@@ -24,23 +23,16 @@ public class CoreTemperatureLoadingAndSpikesBenchmark
     }
 
     [Benchmark]
-    public Dictionary<Phase, int> LoadNoLinqArray()
+    public Dictionary<Phase, int> LoadNoLinqArrayStaticCount()
     {
         var readings = TemperatureReadingFile.Load(_lines);
-        return CoreTemperatureLoadingAndSpikes.NoLinqArray(readings);
-    }
-
-    /*[Benchmark]
-    public Dictionary<Phase, int> LoadNoLinqSpan()
-    {
-        var readings = TemperatureReadingFile.Load(_lines);
-        return CoreTemperatureLoadingAndSpikes.NoLinqSpan(readings);
+        return CoreTemperatureLoadingAndSpikes.NoLinqArrayStaticCount(readings);
     }
 
     [Benchmark]
-    public Dictionary<Phase, int> LoadSpanSplitNoLinqSpan()
+    public Dictionary<Phase, int> LoadSpanSplitNoLinqArrayStaticCount()
     {
         var readings = CoreTemperatureLoadingAndSpikes.LoadSpanSplit(_lines);
-        return CoreTemperatureLoadingAndSpikes.NoLinqSpan(readings);
-    }*/
+        return CoreTemperatureLoadingAndSpikes.NoLinqArrayStaticCount(readings);
+    }
 }

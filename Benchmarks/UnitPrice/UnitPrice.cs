@@ -13,13 +13,13 @@ public static class UnitPriceLinq
 
 public static class UnitPriceSorted
 {
-    public static decimal GetUnitPrice(int quantity, List<PriceTier> tiersSortedDescending)
+    public static decimal GetUnitPrice(int quantity, List<PriceTier> tiers)
     {
-        for (var i = 0; i < tiersSortedDescending.Count; i++)
+        for (var i = tiers.Count - 1; i >= 0; i--)
         {
-            if (quantity >= tiersSortedDescending[i].MinQuantity)
+            if (quantity >= tiers[i].MinQuantity)
             {
-                return tiersSortedDescending[i].UnitPrice;
+                return tiers[i].UnitPrice;
             }
         }
 

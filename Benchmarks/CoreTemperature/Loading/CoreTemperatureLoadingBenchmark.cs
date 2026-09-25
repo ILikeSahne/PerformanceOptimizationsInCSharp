@@ -4,7 +4,7 @@ using BenchmarkDotNet.Diagnosers;
 namespace Benchmarks.CoreTemperature;
 
 [MemoryDiagnoser]
-//[EventPipeProfiler(EventPipeProfile.GcVerbose)]
+[EventPipeProfiler(EventPipeProfile.GcVerbose)]
 public class CoreTemperatureLoadingBenchmark
 {
     private string[] _lines = null!;
@@ -29,9 +29,9 @@ public class CoreTemperatureLoadingBenchmark
         return CoreTemperatureLoading.LoadStructs(_lines);
     }
 
-    /*[Benchmark]
+    [Benchmark]
     public List<TemperatureReadingStruct> LoadSpanSplit()
     {
         return CoreTemperatureLoading.LoadSpanSplit(_lines);
-    }*/
+    }
 }
