@@ -12,7 +12,7 @@ public static class CoreTemperatureSaving
 
         foreach (var spike in spikes)
         {
-            result += (int)spike.Phase + ";" + spike.Celsius + "\n";
+            result += $"{(int)spike.Phase};{spike.Celsius:000.000000}\n";
         }
 
         return result;
@@ -26,7 +26,7 @@ public static class CoreTemperatureSaving
         {
             builder.Append((int)spike.Phase);
             builder.Append(';');
-            builder.Append(spike.Celsius);
+            builder.Append($"{spike.Celsius:000.000000}");
             builder.Append('\n');
         }
 
